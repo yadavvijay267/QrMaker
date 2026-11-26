@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>QR Code Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="assets/qr-code-styling.js"></script>
+<style>
+  :root{
+    --bg:#F4F5F0;
+    --surface:#FFFFFF;
+    --surface-2:#EEF1E9;
+    --ink:#101613;
+    --ink-2:#3D4741;
+    --muted:#6B7770;
+    --line:#DCE2D8;
+    --line-strong:#C4CFC0;
+    --accent:#0B6B4F;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#DFF3E9;
+    --warm:#E85D26;
+    --warm-soft:#FFE9DE;
+    --preview-bg:#101613;
+    --preview-card:#FFFFFF;
+    --shadow:0 18px 40px rgba(16,22,19,.10), 0 2px 8px rgba(16,22,19,.06);
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0B100E;
+      --surface:#151D19;
+      --surface-2:#1C2621;
+      --ink:#EDF4EF;
+      --ink-2:#C4D1C8;
+      --muted:#8FA398;
+      --line:#26332C;
+      --line-strong:#35473C;
+      --accent:#2FBF8F;
+      --accent-ink:#06110D;
+      --accent-soft:#12382B;
+      --warm:#FF7A45;
+      --warm-soft:#3A2015;
+      --preview-bg:#050807;
+      --preview-card:#FFFFFF;
+      --shadow:0 18px 40px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Manrope",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,[role="button"],select,input:not([type="checkbox"],[type="radio"]){min-height:44px}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit}
+  a{color:var(--accent)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 44px}
+
+  /* Intro */
+  .intro{display:flex;gap:20px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin:6px 0 20px}
+  .intro h1{
+    font-family:"Archivo",sans-serif;
+    font-size:clamp(28px,4.5vw,44px);
+    line-height:.98;letter-spacing:-.02em;
+    margin:0;font-weight:800;max-width:620px;
+  }
+  .intro h1 em{font-style:normal;color:var(--accent)}
+  .intro p{margin:10px 0 0;color:var(--ink-2);font-size:16px;line-height:1.55;max-width:560px;font-weight:600}
+  .intro-badge{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+    border:1px solid var(--line-strong);background:var(--surface);
+    padding:10px 12px;border-radius:999px;white-space:nowrap;color:var(--ink-2);
+    display:flex;align-items:center;gap:8px;
+  }
+  .dot-live{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+
+  /* Layout */
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+  @media (max-width:920px){ .layout{grid-template-columns:1fr} }
+
+  .stack{display:grid;gap:16px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius-lg);padding:20px;
+  }
+  .card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .card-head h2{font-family:"Archivo",sans-serif;font-size:19px;margin:0;letter-spacing:-.01em;font-weight:700}
+  .card-head span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .hint{font-size:13.5px;color:var(--muted);line-height:1.5;margin:8px 0 0;font-weight:600}
+
+  /* Type tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .tab{
+    border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);
+    padding:10px 16px;border-radius:999px;font-weight:800;font-size:14px;min-height:44px;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .tab svg{width:16px;height:16px;flex:none}
+  .tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  @media (prefers-color-scheme: dark){ .tab[aria-selected="true"]{background:var(--ink);color:#0B100E} }
+
+  .field{margin-bottom:12px}
+  .field:last-child{margin-bottom:0}
+  label.lbl{display:block;font-size:13px;font-weight:800;margin-bottom:7px;color:var(--ink-2)}
+  .input, textarea.input, select.input{
+    width:100%;border:1.5px solid var(--line-strong);background:var(--surface);
+    color:var(--ink);border-radius:var(--radius-sm);padding:12px 14px;font-size:16px;font-weight:600;
+    outline:none;
+  }
+  textarea.input{resize:vertical;min-height:88px;line-height:1.5}
+  .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .input::placeholder{color:var(--muted);font-weight:600}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){ .row2{grid-template-columns:1fr} }
+  .panel{display:none}
+  .panel.active{display:block}
+  .charcount{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);text-align:right;margin-top:6px;font-weight:600}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{
+    border:1px dashed var(--line-strong);background:var(--surface-2);color:var(--ink-2);
+    border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;min-height:40px;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* Presets */
+  .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  @media (max-width:520px){ .presets{grid-template-columns:repeat(2,1fr)} }
+  .preset{
+    display:flex;align-items:center;gap:10px;text-align:left;
+    border:1.5px solid var(--line);background:var(--surface);border-radius:12px;
+    padding:10px 12px;font-weight:800;font-size:13.5px;color:var(--ink);min-height:52px;
+  }
+  .preset[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .preset-swatches{display:flex;flex:none}
+  .preset-swatches i{width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,.14);display:block}
+  .preset-swatches i+i{margin-left:-7px}
+
+  .color-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){ .color-grid{grid-template-columns:1fr} }
+  .color-box{display:flex;gap:10px;align-items:stretch}
+  .color-pick{
+    width:52px;min-height:48px;border:1.5px solid var(--line-strong);border-radius:var(--radius-sm);
+    padding:4px;background:var(--surface);cursor:pointer;flex:none;
+  }
+  .color-pick::-webkit-color-swatch-wrapper{padding:0}
+  .color-pick::-webkit-color-swatch{border:none;border-radius:6px}
+  .hex{flex:1;text-transform:uppercase;font-family:"IBM Plex Mono",monospace;font-size:14px !important}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 0;margin-top:4px;border-top:1px dashed var(--line)}
+  .toggle-row p{margin:0;font-size:14px;font-weight:800}
+  .toggle-row small{display:block;color:var(--muted);font-weight:600;font-size:12.5px;margin-top:2px}
+  .switch{
+    flex:none;width:58px;height:36px;border-radius:999px;border:1.5px solid var(--line-strong);
+    background:var(--surface-2);position:relative;padding:0;min-height:36px;
+  }
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--muted);transition:all .18s ease}
+  .switch[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+  .switch[aria-pressed="true"]::after{left:25px;background:#fff}
+
+  /* Style pickers */
+  .style-group{margin-bottom:14px}
+  .style-group:last-child{margin-bottom:0}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{
+    border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+    border-radius:10px;padding:9px 13px;font-size:13.5px;font-weight:800;min-height:44px;
+  }
+  .opt[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+
+  /* Logo */
+  .logo-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .logo-thumb{
+    width:56px;height:56px;border-radius:12px;border:1.5px dashed var(--line-strong);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface-2);flex:none;
+    font-size:11px;color:var(--muted);font-weight:800;text-align:center;padding:4px;
+  }
+  .logo-thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+  .btn{
+    border-radius:10px;padding:11px 16px;font-weight:800;font-size:14.5px;
+    border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;
+  }
+  .btn:hover{border-color:var(--ink)}
+  .btn-ghost{border-color:transparent;background:transparent;color:var(--warm)}
+  .btn-ghost:hover{border-color:var(--warm)}
+  .range-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .range-row label{font-size:13px;font-weight:800;color:var(--ink-2);white-space:nowrap}
+  .range-row output{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;min-width:42px;text-align:right}
+  input[type="range"]{flex:1;accent-color:var(--accent);min-height:44px}
+
+  /* Preview */
+  .preview{
+    background:var(--preview-bg);color:#EDF4EF;border-radius:24px;padding:22px;
+    position:sticky;top:16px;box-shadow:var(--shadow);overflow:hidden;
+  }
+  @media (max-width:920px){ .preview{position:static} }
+  .preview-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}
+  .preview-top h2{font-family:"Archivo",sans-serif;font-size:18px;margin:0;font-weight:700}
+  .live-pill{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:6px 10px;border-radius:999px;display:flex;gap:7px;align-items:center}
+  .qr-stage{
+    background:
+      repeating-conic-gradient(#E8EAE6 0% 25%, #FFFFFF 0% 50%) 50% / 22px 22px;
+    border-radius:18px;padding:22px;display:flex;align-items:center;justify-content:center;min-height:324px;
+  }
+  .qr-card{
+    background:var(--preview-card);border-radius:14px;padding:16px;
+    box-shadow:0 14px 30px rgba(0,0,0,.28);line-height:0;max-width:100%;
+  }
+  .qr-card canvas,.qr-card svg{width:252px !important;height:252px !important;max-width:100%}
+  @media (max-width:420px){ .qr-card canvas,.qr-card svg{width:224px !important;height:224px !important} }
+  .qr-empty{
+    width:252px;height:252px;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;
+    text-align:center;color:#5B6660;line-height:1.45;padding:20px;
+  }
+  .qr-empty strong{font-family:"Archivo",sans-serif;font-size:17px;color:#101613}
+  .qr-empty span{font-size:13.5px;font-weight:600}
+  .qr-meta{
+    display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px;
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  }
+  .qr-meta span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:7px 10px;border-radius:999px}
+  .dl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .dl-btn{
+    border-radius:12px;padding:13px 8px;font-weight:800;font-size:14.5px;min-height:52px;
+    border:1.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+  }
+  .dl-btn small{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;opacity:.65;letter-spacing:.03em}
+  .dl-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (prefers-color-scheme: dark){ .dl-btn.primary{color:#06110D} }
+  .dl-btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-full{width:100%;margin-top:8px;background:transparent}
+  .scan-tip{
+    margin:14px 0 0;font-size:13px;line-height:1.55;color:rgba(237,244,239,.72);font-weight:600;
+    border-top:1px solid rgba(255,255,255,.12);padding-top:12px;
+  }
+  .scan-tip strong{color:#fff}
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);z-index:50;
+    background:var(--ink);color:var(--bg);font-weight:800;font-size:14px;
+    padding:13px 18px;border-radius:999px;box-shadow:var(--shadow);transition:transform .25s ease;max-width:92vw;text-align:center;
+  }
+  .toast.show{transform:translate(-50%,0)}
+  @media (prefers-color-scheme: dark){ .toast{background:#EDF4EF;color:#0B100E} }
+
+  .how{margin-top:20px}
+  .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:720px){ .how-grid{grid-template-columns:1fr} }
+  .how-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-md);padding:16px}
+  .how-item b{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);display:block;margin-bottom:7px}
+  .how-item p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink-2);font-weight:600}
+  .how-item p strong{color:var(--ink)}
+  footer{margin-top:22px;color:var(--muted);font-size:13px;font-weight:600;text-align:center;line-height:1.6}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;scroll-behavior:auto !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="intro">
+    <div>
+      <h1>Make a <em>QR code</em> for any link, in your own style.</h1>
+      <p>Link, text, WiFi, phone or email — whatever you add, the QR is created instantly. Change the colors, design and logo, then download it in high quality.</p>
+    </div>
+    <div class="intro-badge"><span class="dot-live"></span> LIVE PREVIEW · MADE IN YOUR BROWSER</div>
+  </div>
+
+  <div class="layout">
+    <div class="stack">
+
+      <!-- 1 · Content -->
+      <section class="card" aria-labelledby="h-content">
+        <div class="card-head"><h2 id="h-content">1 · What do you want to encode?</h2><span>Content</span></div>
+
+        <div class="tabs" role="tablist" aria-label="QR type">
+          <button class="tab" role="tab" data-type="url" aria-selected="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 14a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 10a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+            Link / URL</button>
+          <button class="tab" role="tab" data-type="text" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></svg>
+            Text</button>
+          <button class="tab" role="tab" data-type="wifi" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9a15 15 0 0 1 19 0M5.5 12.5a10.5 10.5 0 0 1 13 0M8.6 16a6 6 0 0 1 6.8 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg>
+            WiFi</button>
+          <button class="tab" role="tab" data-type="phone" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.25a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9z"/></svg>
+            Phone</button>
+          <button class="tab" role="tab" data-type="email" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            Email</button>
+        </div>
+
+        <!-- URL -->
+        <div class="panel active" data-panel="url">
+          <div class="field">
+            <label class="lbl" for="f-url">Website link</label>
+            <input class="input" id="f-url" type="url" inputmode="url" placeholder="https://example.com" value="https://www.google.com" autocomplete="off" spellcheck="false">
+            <div class="charcount"><span id="cc-url">0</span> characters</div>
+          </div>
+          <div class="chips">
+            <button class="chip" data-fill="url" data-value="https://www.youtube.com">YouTube</button>
+            <button class="chip" data-fill="url" data-value="https://www.instagram.com">Instagram</button>
+            <button class="chip" data-fill="url" data-value="https://maps.google.com">Google Maps</button>
+          </div>
+        </div>
+
+        <!-- Text -->
+        <div class="panel" data-panel="text">
+          <div class="field">
+            <label class="lbl" for="f-text">Your text</label>
+            <textarea class="input" id="f-text" placeholder="Write whatever you want here — address, note, UPI ID, anything…"></textarea>
+            <div class="charcount"><span id="cc-text">0</span> characters</div>
+          </div>
+        </div>
+
+        <!-- WiFi -->
+        <div class="panel" data-panel="wifi">
+          <div class="row2">
+            <div class="field">
+              <label class="lbl" for="f-wifi-ssid">WiFi name (SSID)</label>
+              <input class="input" id="f-wifi-ssid" type="text" placeholder="HomeWiFi" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="lbl" for="f-wifi-pass">Password</label>
+              <input class="input" id="f-wifi-pass" type="text" placeholder="Your WiFi password" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-wifi-enc">Security type</label>
+            <select class="input" id="f-wifi-enc">
+              <option value="WPA" selected>WPA / WPA2 (most common)</option>
+              <option value="WEP">WEP (older)</option>
+              <option value="nopass">No password (open network)</option>
+            </select>
+          </div>
+          <p class="hint">Guests can scan this QR to connect to your WiFi instantly — no need to say or write down the password.</p>
+        </div>
+
+        <!-- Phone -->
+        <div class="panel" data-panel="phone">
+          <div class="field">
+            <label class="lbl" for="f-phone">Phone number</label>
+            <input class="input" id="f-phone" type="tel" inputmode="tel" placeholder="+91 98765 43210" autocomplete="off">
+            <div class="charcount">Scanning opens the number directly in the dialer</div>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="panel" data-panel="email">
+          <div class="row2">
+            <div class="field">
+              <label class="lbl" for="f-email">Email address</label>
+              <input class="input" id="f-email" type="email" inputmode="email" placeholder="name@example.com" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="lbl" for="f-email-sub">Subject (optional)</label>
+              <input class="input" id="f-email-sub" type="text" placeholder="Hello!" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-email-body">Message (optional)</label>
+            <textarea class="input" id="f-email-body" style="min-height:64px" placeholder="Write a pre-filled message…"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 · Design -->
+      <section class="card" aria-labelledby="h-design">
+        <div class="card-head"><h2 id="h-design">2 · Colors and design</h2><span>Style</span></div>
+
+        <label class="lbl">Ready-made themes</label>
+        <div class="presets" id="presets">
+          <button class="preset" data-fg="#111111" data-bg="#FFFFFF" aria-pressed="true"><span class="preset-swatches"><i style="background:#111111"></i><i style="background:#FFFFFF"></i></span>Classic</button>
+          <button class="preset" data-fg="#065F46" data-bg="#FFFFFF" aria-pressed="false"><span class="preset-swatches"><i style="background:#065F46"></i><i style="background:#FFFFFF"></i></span>Emerald</button>
+          <button class="preset" data-fg="#1D4ED8" data-bg="#EFF6FF" aria-pressed="false"><span class="preset-swatches"><i style="background:#1D4ED8"></i><i style="background:#EFF6FF"></i></span>Ocean</button>
+          <button class="preset" data-fg="#991B1B" data-bg="#FFF7F0" aria-pressed="false"><span class="preset-swatches"><i style="background:#991B1B"></i><i style="background:#FFF7F0"></i></span>Crimson</button>
+          <button class="preset" data-fg="#7C2D12" data-bg="#FFFBEB" aria-pressed="false"><span class="preset-swatches"><i style="background:#7C2D12"></i><i style="background:#FFFBEB"></i></span>Sunset</button>
+          <button class="preset" data-fg="#0F172A" data-bg="#FEF9C3" aria-pressed="false"><span class="preset-swatches"><i style="background:#0F172A"></i><i style="background:#FEF9C3"></i></span>Turmeric</button>
+        </div>
+
+        <div class="color-grid">
+          <div class="field">
+            <label class="lbl" for="fg-hex">QR color (dots)</label>
+            <div class="color-box">
+              <input class="color-pick" type="color" id="fg-color" value="#111111" aria-label="QR color picker">
+              <input class="input hex" id="fg-hex" value="#111111" maxlength="7" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl" for="bg-hex">Background color</label>
+            <div class="color-box">
+              <input class="color-pick" type="color" id="bg-color" value="#ffffff" aria-label="Background color picker">
+              <input class="input hex" id="bg-hex" value="#FFFFFF" maxlength="7" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <p>Transparent background<small>Useful for placing the PNG over a design</small></p>
+          <button class="switch" id="transparent-toggle" aria-pressed="false" aria-label="Transparent background"></button>
+        </div>
+
+        <div style="height:16px"></div>
+
+        <div class="style-group">
+          <label class="lbl">Dots shape</label>
+          <div class="opts" data-opt-group="dots">
+            <button class="opt" data-value="square" aria-pressed="false">Square</button>
+            <button class="opt" data-value="rounded" aria-pressed="true">Rounded</button>
+            <button class="opt" data-value="dots" aria-pressed="false">Dots (round)</button>
+            <button class="opt" data-value="classy" aria-pressed="false">Classy</button>
+            <button class="opt" data-value="classy-rounded" aria-pressed="false">Classy Rounded</button>
+            <button class="opt" data-value="extra-rounded" aria-pressed="false">Extra Rounded</button>
+          </div>
+        </div>
+        <div class="style-group">
+          <label class="lbl">Corner squares (finder)</label>
+          <div class="opts" data-opt-group="cornerSquare">
+            <button class="opt" data-value="square" aria-pressed="false">Square</button>
+            <button class="opt" data-value="extra-rounded" aria-pressed="true">Rounded</button>
+            <button class="opt" data-value="dot" aria-pressed="false">Round</button>
+          </div>
+        </div>
+        <div class="style-group">
+          <label class="lbl">Inner corner dot</label>
+          <div class="opts" data-opt-group="cornerDot">
+            <button class="opt" data-value="square" aria-pressed="false">Square</button>
+            <button class="opt" data-value="dot" aria-pressed="true">Round</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 · Logo & size -->
+      <section class="card" aria-labelledby="h-logo">
+        <div class="card-head"><h2 id="h-logo">3 · Logo and size</h2><span>Finish</span></div>
+
+        <label class="lbl">Logo in the center (optional)</label>
+        <div class="logo-row">
+          <div class="logo-thumb" id="logo-thumb">LOGO</div>
+          <button class="btn" id="logo-pick" type="button">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></svg>
+            Upload logo
+          </button>
+          <button class="btn btn-ghost" id="logo-remove" style="display:none">Remove logo</button>
+        </div>
+        <div class="range-row" id="logo-size-row" style="display:none">
+          <label for="logo-size">Logo size</label>
+          <input type="range" id="logo-size" min="25" max="55" value="40">
+          <output id="logo-size-out">40%</output>
+        </div>
+        <p class="hint">Adding a logo automatically sets the quality to <strong>High</strong>, so the QR still scans easily even with a logo in the center.</p>
+
+        <div style="height:18px"></div>
+
+        <div class="style-group">
+          <label class="lbl">Download size</label>
+          <div class="opts" data-opt-group="size">
+            <button class="opt" data-value="512" aria-pressed="false">512 px · Small</button>
+            <button class="opt" data-value="1024" aria-pressed="true">1024 px · Clear and large</button>
+            <button class="opt" data-value="2048" aria-pressed="false">2048 px · Large poster</button>
+          </div>
+        </div>
+        <div class="style-group">
+          <label class="lbl">Scan quality (error correction)</label>
+          <div class="opts" data-opt-group="ecl">
+            <button class="opt" data-value="L" aria-pressed="false">Low</button>
+            <button class="opt" data-value="M" aria-pressed="false">Medium</button>
+            <button class="opt" data-value="Q" aria-pressed="true">High</button>
+            <button class="opt" data-value="H" aria-pressed="false">Highest</button>
+          </div>
+          <p class="hint">Higher quality makes the QR denser — but it still scans reliably even with a poor print or a logo.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Preview -->
+    <aside class="preview" aria-labelledby="h-preview">
+      <div class="preview-top">
+        <h2 id="h-preview">Your QR</h2>
+        <span class="live-pill"><span class="dot-live"></span>LIVE UPDATE</span>
+      </div>
+
+      <div class="qr-stage" id="qr-stage">
+        <div class="qr-card" id="qr-card">
+          <div id="qr-holder"></div>
+          <div class="qr-empty" id="qr-empty" style="display:none">
+            <strong>Add something first</strong>
+            <span>As soon as you add a link, text or number above,<br>your QR will appear here.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qr-meta">
+        <span id="meta-size">1024 × 1024 px</span>
+        <span id="meta-type">LINK</span>
+        <span id="meta-chars">0 chars</span>
+      </div>
+
+      <div class="dl-grid">
+        <button class="dl-btn primary" id="dl-png">PNG<small>IMAGE · BEST QUALITY</small></button>
+        <button class="dl-btn" id="dl-jpg">JPG<small>IMAGE · SMALLER FILE</small></button>
+        <button class="dl-btn" id="dl-svg">SVG<small>VECTOR · NO PIXELATION</small></button>
+      </div>
+      <button class="dl-btn btn-full" id="btn-copy">Copy image</button>
+
+      <p class="scan-tip"><strong>Test before you download:</strong> scan this preview with your phone camera to check it works. Keep strong contrast between the dots and the background — a light QR on a light color often won't scan.</p>
+    </aside>
+  </div>
+
+  <section class="how">
+    <div class="how-grid">
+      <div class="how-item"><b>STEP 01</b><p><strong>Add your content</strong> — paste a link or fill in the WiFi / phone form. The QR builds as you type, with no button to press.</p></div>
+      <div class="how-item"><b>STEP 02</b><p><strong>Make it yours</strong> — pick a theme or set your own colors, change the dots shape and add your logo in the center if you like.</p></div>
+      <div class="how-item"><b>STEP 03</b><p><strong>Download it</strong> — PNG for screens, SVG for large posters. For a poster or sticker, use the 2048 px size.</p></div>
+    </div>
+  </section>
+
+  <footer>Your QR is made entirely in your browser — your link or text is never uploaded anywhere.<br>Always test it by scanning with your phone before you print.</footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    type: "url",
+    dots: "rounded",
+    cornerSquare: "extra-rounded",
+    cornerDot: "dot",
+    size: 1024,
+    ecl: "Q",
+    transparent: false,
+    logo: null,
+    logoSize: 0.4
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var holder = $("qr-holder"), emptyEl = $("qr-empty");
+  var fgColor = $("fg-color"), fgHex = $("fg-hex"), bgColor = $("bg-color"), bgHex = $("bg-hex");
+
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+  }
+
+  function escWifi(s){ return (s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/:/g,"\\:").replace(/"/g,'\\"'); }
+
+  function buildData(){
+    switch(state.type){
+      case "url": {
+        var v = $("f-url").value.trim();
+        if(v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v) && !/^(mailto:|tel:)/i.test(v)) v = "https://" + v;
+        return v;
+      }
+      case "text": return $("f-text").value;
+      case "wifi": {
+        var ssid = $("f-wifi-ssid").value, pass = $("f-wifi-pass").value, enc = $("f-wifi-enc").value;
+        if(!ssid.trim()) return "";
+        if(enc === "nopass") return "WIFI:T:nopass;S:" + escWifi(ssid) + ";;";
+        return "WIFI:T:" + enc + ";S:" + escWifi(ssid) + ";P:" + escWifi(pass) + ";;";
+      }
+      case "phone": {
+        var p = $("f-phone").value.replace(/[\s()-]/g,"");
+        return p ? "tel:" + p : "";
+      }
+      case "email": {
+        var e = $("f-email").value.trim(); if(!e) return "";
+        var sub = $("f-email-sub").value.trim(), body = $("f-email-body").value.trim();
+        var q = [];
+        if(sub) q.push("subject=" + encodeURIComponent(sub));
+        if(body) q.push("body=" + encodeURIComponent(body));
+        return "mailto:" + e + (q.length ? "?" + q.join("&") : "");
+      }
+    }
+    return "";
+  }
+
+  function currentOptions(forExport, ext){
+    var data = buildData();
+    var ecl = state.logo ? "H" : state.ecl;
+    return {
+      width: state.size, height: state.size,
+      type: (ext === "svg") ? "svg" : "canvas",
+      data: data,
+      image: state.logo || undefined,
+      margin: 0,
+      qrOptions: { typeNumber: 0, mode: "Byte", errorCorrectionLevel: ecl },
+      imageOptions: { hideBackgroundDots: true, imageSize: state.logoSize, margin: 6, crossOrigin: "anonymous" },
+      dotsOptions: { color: fgColor.value, type: state.dots },
+      backgroundOptions: { color: state.transparent ? "rgba(0,0,0,0)" : bgColor.value },
+      cornersSquareOptions: { color: fgColor.value, type: state.cornerSquare },
+      cornersDotOptions: { color: fgColor.value, type: state.cornerDot }
+    };
+  }
+
+  var qr = null;
+  function ensureQR(){
+    if(qr) return qr;
+    qr = new QRCodeStyling(currentOptions(false));
+    qr.append(holder);
+    return qr;
+  }
+
+  var debounce;
+  function render(){
+    clearTimeout(debounce);
+    debounce = setTimeout(function(){
+      var data = buildData();
+      // counters
+      $("cc-url").textContent = $("f-url").value.length;
+      $("cc-text").textContent = $("f-text").value.length;
+      $("meta-chars").textContent = data.length + " chars";
+      $("meta-size").textContent = state.size + " × " + state.size + " px";
+      $("meta-type").textContent = state.type.toUpperCase();
+
+      var has = data.trim().length > 0;
+      holder.style.display = has ? "" : "none";
+      emptyEl.style.display = has ? "none" : "flex";
+      $("qr-stage").style.background = state.transparent && has
+        ? "" : "";
+      var btns = [$("dl-png"), $("dl-jpg"), $("dl-svg"), $("btn-copy")];
+      btns.forEach(function(b){ b.disabled = !has; });
+
+      if(!has) return;
+      if(typeof QRCodeStyling === "undefined"){
+        holder.style.display = "none";
+        emptyEl.style.display = "flex";
+        emptyEl.querySelector("strong").textContent = "QR generation stopped";
+        emptyEl.querySelector("span").innerHTML = "Refresh the page once<br>and try again.";
+        return;
+      }
+      try {
+        if(!qr) { ensureQR(); }
+        else { qr.update(currentOptions(false)); }
+      } catch(e){
+        // only reachable when the content genuinely exceeds QR capacity
+        holder.style.display = "none";
+        emptyEl.style.display = "flex";
+        emptyEl.querySelector("strong").textContent = "Content is too long";
+        emptyEl.querySelector("span").innerHTML = "This much data won't fit in a QR code.<br>Try shortening the text.";
+        return;
+      }
+      emptyEl.querySelector("strong").textContent = "Add something first";
+      emptyEl.querySelector("span").innerHTML = "As soon as you add a link, text or number above,<br>your QR will appear here.";
+    }, 120);
+  }
+
+  /* Tabs */
+  document.querySelectorAll(".tab").forEach(function(tab){
+    tab.addEventListener("click", function(){
+      document.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected","false"); });
+      tab.setAttribute("aria-selected","true");
+      state.type = tab.getAttribute("data-type");
+      document.querySelectorAll(".panel").forEach(function(p){
+        p.classList.toggle("active", p.getAttribute("data-panel") === state.type);
+      });
+      render();
+    });
+  });
+
+  /* Quick fill chips */
+  document.querySelectorAll(".chip").forEach(function(chip){
+    chip.addEventListener("click", function(){
+      $("f-url").value = chip.getAttribute("data-value");
+      render(); $("f-url").focus();
+    });
+  });
+
+  /* All content inputs */
+  ["f-url","f-text","f-wifi-ssid","f-wifi-pass","f-wifi-enc","f-phone","f-email","f-email-sub","f-email-body"].forEach(function(id){
+    var el = $(id);
+    el.addEventListener("input", render);
+    el.addEventListener("change", render);
+  });
+
+  /* Colors */
+  function syncColor(pick, hex, val){
+    if(/^#[0-9a-fA-F]{6}$/.test(val)){
+      pick.value = val; hex.value = val.toUpperCase();
+      clearPresets(); render();
+    }
+  }
+  fgColor.addEventListener("input", function(){ syncColor(fgColor, fgHex, fgColor.value); });
+  bgColor.addEventListener("input", function(){ syncColor(bgColor, bgHex, bgColor.value); });
+  fgHex.addEventListener("change", function(){ var v = fgHex.value.trim(); if(v[0] !== "#") v = "#" + v; syncColor(fgColor, fgHex, v); });
+  bgHex.addEventListener("change", function(){ var v = bgHex.value.trim(); if(v[0] !== "#") v = "#" + v; syncColor(bgColor, bgHex, v); });
+
+  function clearPresets(){
+    document.querySelectorAll(".preset").forEach(function(p){ p.setAttribute("aria-pressed","false"); });
+  }
+  document.querySelectorAll(".preset").forEach(function(p){
+    p.addEventListener("click", function(){
+      clearPresets(); p.setAttribute("aria-pressed","true");
+      fgColor.value = p.getAttribute("data-fg"); fgHex.value = p.getAttribute("data-fg").toUpperCase();
+      bgColor.value = p.getAttribute("data-bg"); bgHex.value = p.getAttribute("data-bg").toUpperCase();
+      if(state.transparent){ state.transparent = false; $("transparent-toggle").setAttribute("aria-pressed","false"); }
+      render();
+    });
+  });
+
+  /* Transparent toggle */
+  $("transparent-toggle").addEventListener("click", function(){
+    state.transparent = !state.transparent;
+    this.setAttribute("aria-pressed", state.transparent ? "true" : "false");
+    render();
+  });
+
+  /* Option groups */
+  var groupState = { dots:"dots", cornerSquare:"cornerSquare", cornerDot:"cornerDot", size:"size", ecl:"ecl" };
+  document.querySelectorAll("[data-opt-group]").forEach(function(group){
+    var key = group.getAttribute("data-opt-group");
+    group.querySelectorAll(".opt").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        group.querySelectorAll(".opt").forEach(function(b){ b.setAttribute("aria-pressed","false"); });
+        btn.setAttribute("aria-pressed","true");
+        var val = btn.getAttribute("data-value");
+        if(key === "size") state.size = parseInt(val, 10);
+        else state[groupState[key]] = val;
+        render();
+      });
+    });
+  });
+
+  /* Logo — file picker is created on tap, so no hidden control sits in the page */
+  $("logo-pick").addEventListener("click", function(){
+    var inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "image/png,image/jpeg,image/webp,image/svg+xml";
+    inp.addEventListener("change", function(){
+      var file = inp.files && inp.files[0];
+      if(!file) return;
+      if(file.size > 5 * 1024 * 1024){ toast("Keep the logo under 5 MB"); return; }
+      var reader = new FileReader();
+      reader.onload = function(){
+        state.logo = reader.result;
+        $("logo-thumb").innerHTML = '<img src="' + reader.result + '" alt="Uploaded logo">';
+        $("logo-remove").style.display = "";
+        $("logo-size-row").style.display = "flex";
+        toast("Logo added — quality set to High");
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+    inp.click();
+  });
+  $("logo-remove").addEventListener("click", function(){
+    state.logo = null;
+    $("logo-thumb").textContent = "LOGO";
+    $("logo-remove").style.display = "none";
+    $("logo-size-row").style.display = "none";
+    render();
+  });
+  $("logo-size").addEventListener("input", function(){
+    state.logoSize = parseInt(this.value, 10) / 100;
+    $("logo-size-out").textContent = this.value + "%";
+    render();
+  });
+
+  /* Downloads */
+  function doDownload(ext){
+    if(!buildData().trim()){ toast("Add some content first"); return; }
+    try {
+      var exporter = new QRCodeStyling(currentOptions(true, ext));
+      exporter.download({ name: "qr-code", extension: ext });
+      toast(ext.toUpperCase() + " is downloading");
+    } catch(e){ toast("Download failed — check your content"); }
+  }
+  $("dl-png").addEventListener("click", function(){ doDownload("png"); });
+  $("dl-jpg").addEventListener("click", function(){ doDownload("jpeg"); });
+  $("dl-svg").addEventListener("click", function(){ doDownload("svg"); });
+
+  $("btn-copy").addEventListener("click", function(){
+    if(!buildData().trim()){ toast("Add some content first"); return; }
+    var exporter = new QRCodeStyling(currentOptions(true, "png"));
+    exporter.getRawData("png").then(function(blob){
+      if(navigator.clipboard && window.ClipboardItem){
+        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
+          .then(function(){ toast("QR image copied — paste it anywhere"); })
+          .catch(function(){ toast("Copy isn't supported in this browser — download the PNG instead"); });
+      } else { toast("Copy isn't supported in this browser — download the PNG instead"); }
+    }).catch(function(){ toast("Copy failed"); });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
